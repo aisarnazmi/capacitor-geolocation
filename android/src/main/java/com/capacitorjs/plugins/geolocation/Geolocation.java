@@ -3,7 +3,9 @@ package com.capacitorjs.plugins.geolocation;
 import android.content.Context;
 import android.location.Location;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.SystemClock;
+import android.util.Log;
 import androidx.core.location.LocationManagerCompat;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -18,7 +20,6 @@ public class Geolocation {
 
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
-
     private Context context;
 
     public Geolocation(Context context) {
@@ -85,11 +86,10 @@ public class Geolocation {
                 int lowPriority = networkEnabled ? Priority.PRIORITY_BALANCED_POWER_ACCURACY : Priority.PRIORITY_LOW_POWER;
                 int priority = enableHighAccuracy ? Priority.PRIORITY_HIGH_ACCURACY : lowPriority;
 
-                LocationRequest locationRequest = new LocationRequest.Builder(10000)
-                    .setMaxUpdateDelayMillis(timeout)
-                    .setMinUpdateIntervalMillis(5000)
-                    .setPriority(priority)
-                    .build();
+                LocationRequest locationRequest = new LocationRequest.Builder(priority, timeout)
+                  .setMinUpdateIntervalMillis(500)
+                  .setMaxUpdateDelayMillis(timeout)
+                  .build();
 
                 locationCallback =
                     new LocationCallback() {
@@ -97,19 +97,32 @@ public class Geolocation {
                         public void onLocationResult(LocationResult locationResult) {
                             Location lastLocation = locationResult.getLastLocation();
                             if (lastLocation == null) {
-                                resultCallback.error("location unavailable");
+                              resultCallback.error("LOCATION_UNAVAILABLE");
                             } else {
-                                resultCallback.success(lastLocation);
+                              if (Build.VERSION.SDK_INT >= 31) {
+                                if (lastLocation.isMock()) {
+                                  resultCallback.error("LOCATION_IS_MOCKED");
+                                } else {
+                                  resultCallback.success(lastLocation);
+                                }
+                              } else {
+                                if (lastLocation.isFromMockProvider()) {
+                                  resultCallback.error("LOCATION_IS_MOCKED");
+                                } else {
+                                  resultCallback.success(lastLocation);
+                                }
+                              }
                             }
                         }
                     };
 
                 fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null);
             } else {
-                resultCallback.error("location disabled");
+                resultCallback.error("LOCATION_DISABLED");
             }
         } else {
-            resultCallback.error("Google Play Services not available");
+          Log.e("CAPACITOR_GEOLOCATION", "Google Play Services not available");
+          resultCallback.error("LOCATION_UNAVAILABLE");
         }
     }
 
