@@ -87,7 +87,7 @@ public class Geolocation {
                 int priority = enableHighAccuracy ? Priority.PRIORITY_HIGH_ACCURACY : lowPriority;
 
                 LocationRequest locationRequest = new LocationRequest.Builder(priority, timeout)
-                  .setMinUpdateIntervalMillis(500)
+                  .setMinUpdateIntervalMillis(1000)
                   .setMaxUpdateDelayMillis(timeout)
                   .build();
 
